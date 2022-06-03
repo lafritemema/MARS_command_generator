@@ -1,5 +1,5 @@
 from typing import List
-from exception import BaseException, ExceptionType
+from exceptions import BaseException, ExceptionType
 from enum import Enum
 
 class MarsExceptionType(ExceptionType):

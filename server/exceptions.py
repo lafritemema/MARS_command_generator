@@ -1,7 +1,7 @@
 from dataclasses import MISSING
 from http.client import NOT_IMPLEMENTED
 from prometheus_client import Enum
-from exception import BaseException
+from exceptions import BaseException
 from enum import Enum
 from typing import List
 
