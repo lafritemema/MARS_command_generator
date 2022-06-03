@@ -60,16 +60,19 @@ def build_commands(body:Dict, headers:Dict):
 
 def main():
   amqp_server = None
+  http_server = None
   
   LOGGER.info("read configurations")
   SERVER_CONFIG = get_config_from_file(__SERVER_CONFIG_FILE)
   MARS_CONFIG = get_config_from_file(__MARS_CONFIG_FILE)
-  amqp_config = SERVER_CONFIG.get('amqp')
+  amqp_config:Dict = SERVER_CONFIG.get('amqp')
+  http_config:Dict = SERVER_CONFIG.get('http')
 
-  LOGGER.info("build mars environment")
+  LOGGER.info("load mars environment")
   model.EQUIPMENT, model.REFERENCE, model.COMMAND_REGISTER, model.DB_DRIVER = mars.build_environment(MARS_CONFIG)
 
-  if amqp_config:
+  # if amqp server configuration is defined and if parameter activate == true
+  if amqp_config and amqp_config.get('activate'):
     LOGGER.info("build amqp server")
     amqp_server = build_amqp_server(amqp_config)
 
@@ -85,10 +88,26 @@ def main():
     
     amqp_server.add_consumer('request.command_generator', req_pipeline)
   
+  if http_config and http_config.get('activate'):
+    # http server configuration - not implemented yet
+    # TODO implement http_server and run 
+    pass
+
+  if not http_server and not amqp_server:
+    raise BaseException(['CONFIG', 'SERVER'],
+                        BaseExceptionType.CONFIG_NOT_CONFORM,
+                        "no server activated, check the configuration")
+  
+  if http_server:
+    # http_server run on new tread - not implemented yet
+    pass
+
   if amqp_server:
+    # run amqp server on the current tread
     LOGGER.info('run amqp server and wait for messages')
     amqp_server.run()
-    
+  
+
 
 if __name__ == '__main__':
   try:
@@ -99,5 +118,5 @@ if __name__ == '__main__':
     LOGGER.fatal(error.describe())
     sys.exit(1)
   except KeyboardInterrupt as error:
-    LOGGER.info("interruption manuelle du programme")
+    LOGGER.info("manual interruption of the program")
     sys.exit(1)

@@ -56,11 +56,10 @@ class Topic:
   @property
   def consumers(self) -> List[Consumer]:
     return self.__consumers
-  """
-  @consumers.setter
-  def consumers(self, consumer:Consumer) -> None:
-    raise Exception("you cant modify consumer using attribute, use add_consumers instead")
-    pass"""
+  
+  @property
+  def queue(self):
+    return self.__queue
 
   def add_consumer(self, consumer:Consumer) -> None:
     self.__consumers.append(consumer)
@@ -99,8 +98,8 @@ class AMQPServer:
 
     # get the queue name
     queue_name = method.queue
-    # define a tag with the label
-    tag = 'ctag.'+label
+    # define a tag with the server name + label
+    tag = '.'.join(('ctag', self.__name, label))
 
     # bind topics to the queue in the amqp service provider
     for topic in topics:
