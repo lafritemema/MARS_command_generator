@@ -7,7 +7,7 @@ from pymongo.errors import ServerSelectionTimeoutError
 from typing import Dict
 
 from .driver import DBDriver
-from .exception import DBDriverException, DBExceptionType
+from .exceptions import DBDriverException, DBExceptionType
 
 MONGO_SELECTION_TIMEOUT = 10
  

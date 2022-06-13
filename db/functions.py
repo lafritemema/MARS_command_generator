@@ -4,7 +4,7 @@ from enum import Enum
 from attr import has
 from .driver import DBDriver
 from .mongodb import MongoDriver
-from db.exception import DBDriverException, DBExceptionType
+from db.exceptions import DBDriverException, DBExceptionType
 from utils import GetItemEnum
 from typing import Dict
 from functools import partial

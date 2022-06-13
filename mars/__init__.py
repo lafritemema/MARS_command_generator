@@ -1,8 +1,8 @@
-from db.exception import DBDriverException
+from db.exceptions import DBDriverException
 from db.functions import build_driver as __build_driver
 from typing import Dict
-from exception import BaseException
-from .exception import MarsException, MarsExceptionType
+from exceptions import BaseException
+from .exceptions import MarsException, MarsExceptionType
 from mars.equipment import Equipment as EQUIPMENT
 from mars.reference import Reference as REFERENCE
 from mars.register import COMMAND_REGISTER
