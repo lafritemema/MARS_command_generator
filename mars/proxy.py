@@ -112,14 +112,14 @@ class ProxyAction(Enum):
 class Frame(Enum):
   CELL_FRAME = 3
 
-class EquipmentI(EnumMeta):
+class ProxyEquipmentI(EnumMeta):
   def _get_tracker_def(self, operation:str):
     pass
   @staticmethod
   def _get_register_info():
     pass
 
-class Effector(Enum, metaclass=EquipmentI):
+class Effector(Enum, metaclass=ProxyEquipmentI):
   WEB_C_DRILLING = 1
   FLANGE_C_DRILLING = 2
   NO_EFFECTOR = 3
@@ -143,7 +143,7 @@ class Effector(Enum, metaclass=EquipmentI):
   def _get_register_info() -> Tuple[RegisterType, int]:
     return RegisterType.NUMERIC_INT, ConstantRegister.EFFECTOR_REFERENCE
 
-class Equipment(Enum, metaclass=GetItemEnum):
+class ProxyEquipment(Enum, metaclass=GetItemEnum):
   EFFECTOR = Effector
 
 
@@ -348,7 +348,7 @@ def __track_register(register_type:RegisterType,
 
   # init the base command dict
   base_command = {
-    "method": "PUT",
+    "method": "SUBSCRIBE",
     "api": register_type.base_path + routing,
     "query":None,
     "body": {
@@ -599,22 +599,20 @@ def get_drilling_report() -> List[ProxyCommand]:
                        cmd_def)]
 
 def confirm_manipulation(manipulation:Manipulation):
-  
-  # get equipment info (type:str, id:str)
-  equipment_type, equipment_id = manipulation.equipment
-  # get corresponding proxy equipment type class
-  proxy_equip_type:EquipmentI = Equipment[equipment_type]
-  
-  #get corresponding equipment 
-  equipment:EquipmentI = proxy_equip_type[equipment_id]
+
+  # get equipment 
+  equipment = manipulation.equipment
+
+  # get corresponding ProxyEquipment object (for Proxy Specific information)
+  p_equipment:ProxyEquipmentI = ProxyEquipment[equipment.type][equipment.reference]
 
   # get operation name str
   operation = manipulation.operation
 
   # get tracking def to check the good manipulation
-  tracker_def_para = equipment._get_tracker_def(operation)
+  tracker_def_para = p_equipment._get_tracker_def(operation)
   # get info about register to track according to equipment type (type:RegisterType, num:int)
-  register_type, register_num = proxy_equip_type._get_register_info()
+  register_type, register_num = p_equipment._get_register_info()
   
   # define the tracker definition
   tracker_cmd_def = __track_register(register_type,
@@ -624,7 +622,7 @@ def confirm_manipulation(manipulation:Manipulation):
   
   # define the command
   tracker_command = ProxyCommand(ProxyAction.REQUEST,
-                                 f"init tracker to alert for {equipment_id} {equipment_type} {operation} operation",
+                                 f"init tracker to alert for {equipment.reference} {equipment.type} {operation} operation",
                                  tracker_cmd_def)
 
   return [tracker_command]

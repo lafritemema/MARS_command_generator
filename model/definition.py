@@ -195,8 +195,8 @@ class Manipulation(Definition):
         return self.__operation.name
     
     @property
-    def equipment(self) -> str:
-        return self.__equipment.__class__.__name__.upper(), self.__equipment.value
+    def equipment(self) -> EquipmentI:
+        return self.__equipment
 
     @staticmethod
     def parse(manipulation_definition:Dict):

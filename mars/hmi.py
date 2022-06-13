@@ -22,5 +22,5 @@ def send_manipulation_message(manipulation:Manipulation) -> List[HmiCommand]:
   """
   cmd_def = manipulation.to_dict()
   return [HmiCommand(HmiAction.REQUEST,
-                     f"send message to HMI to {manipulation.operation} {manipulation.equipment}",
+                     f"send message to HMI to {manipulation.operation} {manipulation.equipment.type} {manipulation.equipment.reference}",
                      cmd_def)] 
