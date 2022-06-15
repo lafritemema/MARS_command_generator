@@ -7,6 +7,9 @@ from model.definition import Manipulation
 class HmiAction(Enum):
   REQUEST = "REQUEST"
 
+class HmiMethod(Enum):
+  NOTIFY = "NOTIFY"
+
 class HmiCommand(Command):
   def __init__(self, action:HmiAction, description:str, definition:Dict):
     super().__init__("HMI", action.value, description, definition)
@@ -20,12 +23,16 @@ def send_manipulation_message(manipulation:Manipulation) -> List[HmiCommand]:
   Returns:
       List[HmiCommand]: _description_
   """
+
+  METHOD = HmiMethod.NOTIFY
+  PATH = "/sequencer/manipulation"
+
   body = manipulation.to_dict()
-  path = "/sequencer/manipulation"
 
   definition = {
     "body":body,
-    "path":path
+    "path":PATH,
+    "method":METHOD.value 
   }
 
   return [HmiCommand(HmiAction.REQUEST,
