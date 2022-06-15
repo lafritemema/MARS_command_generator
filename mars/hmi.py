@@ -20,7 +20,14 @@ def send_manipulation_message(manipulation:Manipulation) -> List[HmiCommand]:
   Returns:
       List[HmiCommand]: _description_
   """
-  cmd_def = manipulation.to_dict()
+  body = manipulation.to_dict()
+  path = "/sequencer/manipulation"
+
+  definition = {
+    "body":body,
+    "path":path
+  }
+
   return [HmiCommand(HmiAction.REQUEST,
                      f"send message to HMI to {manipulation.operation} {manipulation.equipment.type} {manipulation.equipment.reference}",
-                     cmd_def)] 
+                     definition)] 
