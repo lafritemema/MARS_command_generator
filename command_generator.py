@@ -79,15 +79,17 @@ def build_commands(body:Dict,
                    headers:Dict,
                    path:str,
                    query_args:Dict):
+                   
   #get the action id from the body
   id = body.get('id')
+
   # extract data from database and generate an action
   action = Action.get_from_db(id)
+
   # build a body with commands
   body = {
     "commands":action.get_commands()
   }
-  
   return body, headers
 
 def build_validator(schemas_dict:Dict)-> Validator:
