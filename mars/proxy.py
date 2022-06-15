@@ -130,9 +130,9 @@ class ProxyEquipmentI(EnumMeta):
     pass
 
 class Effector(Enum, metaclass=ProxyEquipmentI):
-  WEB_C_DRILLING = 1
-  FLANGE_C_DRILLING = 2
-  NO_EFFECTOR = 3
+  WEB_C_DRILLING = 2
+  FLANGE_C_DRILLING = 3
+  NO_EFFECTOR = 1
 
   def _get_tracker_def(self, operation:str):
     fct = getattr(Effector, operation)
