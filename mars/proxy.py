@@ -1,5 +1,6 @@
 
 from enum import Enum, EnumMeta
+import uuid
 
 from zmq import SUBSCRIBE
 from model.definition import Manipulation
@@ -67,14 +68,13 @@ class RegisterType(Enum):
     # get the key according the register type
     key = self.value[4]
 
-    try:
-      # check if data is iterable
-      _ = iter(data)
+    # if data is a list or tuple
+    if type(data) == list or type(data) == tuple:
       # add a s to the key and fill the body
       body[key+'s'] = data
       return body
-    except:
-      # fill the body with initial key
+    else:
+       # fill the body with initial key
       body[key] = data
       return body
 
@@ -136,7 +136,7 @@ class Effector(Enum, metaclass=ProxyEquipmentI):
 
   def _get_tracker_def(self, operation:str):
     fct = getattr(Effector, operation)
-    if(len(signature(fct).parameters)) > 0:
+    if (len(signature(fct).parameters)) > 0:
       return fct(self)
     else:
       return fct()
@@ -184,6 +184,15 @@ class ProxyCommand(Command):
                      action.value,
                      description,
                      definition)
+
+
+# WaitCommand object (uid is the command to wait)
+class WaitCommand(Command):
+  def __init__(self, description:str, uid:str):
+    super().__init__("PROXY",
+                     ProxyAction.WAIT.value,
+                     description,
+                     {'uid':uid})
 
 
 """
@@ -304,8 +313,10 @@ def __write_register(register_type:RegisterType,
       List[Tuple[str, str, Dict, Dict]] :  list of command definition under tuple format (method, path, query, body)
   """
 
+  _data = data[0] if (type(data) == list or type(data) == tuple) and len(data) == 1 else data
+
   # if the data type => list
-  if type(data) == list or type(data) == tuple:
+  if type(_data) == list or type(_data) == tuple:
     # use the block routing path
     routing = RegisterBulk.BLOCK
   else:
@@ -322,12 +333,12 @@ def __write_register(register_type:RegisterType,
   }
 
   # if data => list, 
-  if type(data) == list :
+  if type(_data) == list or type(_data) == tuple:
     # check the register write limit
-    if len(data) > register_type.write_limit:
+    if len(_data) > register_type.write_limit:
       commands = []
       # split data to respect limits
-      split_data = __split_data_by_limit(data, register_type.write_limit)
+      split_data = __split_data_by_limit(_data, register_type.write_limit)
       
       # begin to start register
       index = start_register
@@ -345,9 +356,9 @@ def __write_register(register_type:RegisterType,
       return commands
 
     else:
-      query = register_type.build_query(start_register, len(data))
+      query = register_type.build_query(start_register, len(_data))
       body = BODY.copy()
-      body['data'] = register_type.build_body(data)
+      body['data'] = register_type.build_body(_data)
     
       return [(METHOD, PATH, query, body)]
 
@@ -355,7 +366,7 @@ def __write_register(register_type:RegisterType,
     # fill the query and body parameters of base command dict
     query =  register_type.build_query(start_register)
     body = BODY.copy()
-    body['data'] = register_type.build_body(data)
+    body['data'] = register_type.build_body(_data)
     
     return [(METHOD, PATH, query, body)]
 
@@ -391,24 +402,30 @@ def __track_register(register_type:RegisterType,
       "setting": None
   }
   
+  tracker_uid = str(uuid.uuid4())
+
   # define the tracker settings
   # if expected, tracker type alert
   if expected:
     # build the expected body {relation:..., value: ...}
-    expected_body = register_type.build_body(expected[1])
-    expected_body['relation'] = expected[0]
+    expected_body = {
+      "data": register_type.build_body(expected[1]),
+      "relation": expected[0]
+    }
 
     # build tracker setting body with expected informations
     tracker_setting = {
         "tracker": TrackerType.ALERT,
         "expected": expected_body,
-        "interval": interval
+        "interval": interval,
+        "uid": tracker_uid
     }
   else:
     # build tracker setting body
     tracker_setting = {
         "tracker": TrackerType.REPORT,
-        "interval": interval
+        "interval": interval,
+        "uid": tracker_uid
     }
 
   # define the tracker body
@@ -423,7 +440,7 @@ def __track_register(register_type:RegisterType,
   body = BODY.copy()
   body['setting'] = tracker_body
 
-  return METHOD, PATH, query, body
+  return METHOD, PATH, query, body, tracker_uid
 
 
 """
@@ -453,18 +470,21 @@ def run_program(program:Program) -> List[ProxyCommand]:
 
 
   # get track command parameters
-  t_method, t_path, t_query, t_body = __track_register(RegisterType.NUMERIC_INT,
+  t_method, t_path, t_query, t_body, tracker_uid = __track_register(RegisterType.NUMERIC_INT,
                                                        ConstantRegister.PROCESS,
                                                        DEFAULT_TRACKING_INTERVAL,
                                                       (Relation.NOT_EQUAL.value, Process.IN_PROGRESS.value))
 
+
   # define a proxy command to track end of program
-  tracker_cmd = ProxyCommand(ProxyAction.WAIT,
+  tracker_cmd = ProxyCommand(ProxyAction.REQUEST,
                              f"init tracker to track process register value wait until {Relation.NOT_EQUAL.name} {Process.IN_PROGRESS.name}",
                              t_method, t_path, t_query, t_body)
 
+  # wait command with tracker uid
+  wait_cmd = WaitCommand(f"wait end of program {program.name}", tracker_uid);
   # return the list of commands
-  return [set_program_cmd, tracker_cmd]
+  return [set_program_cmd, tracker_cmd, wait_cmd]
 
 
 def set_utuf(user_tool:str, user_frame:str) -> List[ProxyCommand]:
@@ -515,8 +535,8 @@ def __set_movements_parameters(movements_parameters:List[int]) -> List[ProxyComm
   # get the command definition using write_register function
   # if size of parameters list exceed the number of insertion in one shot (E/IP fanuc limit) the function return a list of cmd def
   w_cmd_def = __write_register(RegisterType.NUMERIC_INT,
-                             ConstantRegister.UT,
-                             movements_parameters)
+                               ConstantRegister.MOVEMENT_PARA_BEGIN,
+                               movements_parameters)
 
   commands = []
   for method, path, query, body in w_cmd_def:
@@ -666,7 +686,7 @@ def confirm_manipulation(manipulation:Manipulation):
   register_type, register_num = p_equipment._get_register_info()
   
   # define the tracker definition
-  method, path, query, body = __track_register(register_type,
+  method, path, query, body, tracker_uid = __track_register(register_type,
                                      register_num,
                                      DEFAULT_TRACKING_INTERVAL,
                                      tracker_def_para)
@@ -678,5 +698,9 @@ def confirm_manipulation(manipulation:Manipulation):
                                  path,
                                  query,
                                  body)
+  
+  # wait command with tracker uid
+  wait_cmd = WaitCommand(f"wait end of manipulation {operation} {equipment.reference} {equipment.type}",
+                         tracker_uid)
 
-  return [tracker_command]
+  return [tracker_command, wait_cmd]

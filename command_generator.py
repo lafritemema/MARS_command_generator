@@ -1,3 +1,4 @@
+from multiprocessing.connection import wait
 from server.exceptions import ServerException
 from utils import get_config_from_file, get_validation_schemas
 import sys
@@ -79,15 +80,16 @@ def build_commands(body:Dict,
                    headers:Dict,
                    path:str,
                    query_args:Dict):
-                   
+  
   #get the action id from the body
-  id = body.get('id')
+  id = body.get('uid')
 
   # extract data from database and generate an action
   action = Action.get_from_db(id)
 
   # build a body with commands
   body = {
+    "uid": action.id,
     "commands":action.get_commands()
   }
   return body, headers

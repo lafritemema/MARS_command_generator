@@ -185,7 +185,7 @@ class Position:
         return {
             "ut": self.__ut,
             "uf": self.__uf,
-            "type": self.__type.name,
+            "type": self.__type.value,
             "e1": self.__e1,
             "vector": self.__vector_to_dict(),
             "config": self.__config.to_dict() if self.__config else None
@@ -195,7 +195,7 @@ class Position:
         return {
             "ut": self.__ut,
             "uf": self.__uf,
-            "type": self.__type.name,
+            "type": self.__type.value,
             "e1": self.__e1,
             "vector": self.__vector_to_dict(),
             "config": self.__config.to_cmd_data() if self.__config else None

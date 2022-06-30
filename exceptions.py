@@ -7,7 +7,6 @@ class ExceptionType(Enum):
 class BaseExceptionType(ExceptionType):
   CONFIG_MISSING = "BASE_CONFIG_MISSING"
   CONFIG_NOT_CONFORM = "BASE_CONFIG_NOT_CONFORM"
-  
 
 class BaseException(Exception):
   def __init__(self, origin_stack:List[str], type:ExceptionType, description:str):
