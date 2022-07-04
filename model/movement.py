@@ -185,7 +185,7 @@ class Position:
         return {
             "ut": self.__ut,
             "uf": self.__uf,
-            "type": self.__type.value,
+            "type": self.__type.name,
             "e1": self.__e1,
             "vector": self.__vector_to_dict(),
             "config": self.__config.to_dict() if self.__config else None
@@ -341,7 +341,7 @@ class Movement:
                     "speed": self.__speed,
                     "type": self.__type
                 },
-            "position":self.__position.to_cmd_data()
+            "position": self.__position.to_cmd_data()
             }
     '''
     def get_sequence(self) -> Dict:
