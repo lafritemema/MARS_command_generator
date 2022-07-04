@@ -1,6 +1,8 @@
 from enum import Enum
-from utils import GetItemEnum
+# MODIFGEN from ..model.equipment import ReferenceI
 from model.reference import ReferenceI
+# MODIFGEN from ..utils import GetItemEnum
+from utils import GetItemEnum
 
 class Frame(ReferenceI):
   CELL_FRAME = 'CELL_FRAME'

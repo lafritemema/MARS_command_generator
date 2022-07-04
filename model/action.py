@@ -1,8 +1,8 @@
 from enum import Enum
 from typing import Dict
 from .definition import Definition, Drilling, Manipulation, Path, Probing
+# MODIFGEN from .__init__ import *
 import model
-
 
 
 ACTION_DEFINITION = {
@@ -172,12 +172,19 @@ class Action:
         return d_action
 
     def get_commands(self):
+        # get the command fonction accordig the action type (ex:MOVE.TCP.WORK)
+        # the command register is defined in the register.py file in the mars module
         cmd_fct = model.COMMAND_REGISTER[self.__type]
+        
+        #apply the fonction with the definition as parameters to get the commands
         cmd_list = cmd_fct(self.__definition)
+        
+        # return the commands under dict format
         return [c.to_dict() for c in cmd_list]
     
     
     @classmethod
     def get_from_db(cls, action_id:str):
         action = model.DB_DRIVER.find_by_id(action_id)
+        # MODIFGEN action = DB_DRIVER.find_by_id(action_id)
         return cls.parse(action)

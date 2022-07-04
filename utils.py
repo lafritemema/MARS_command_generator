@@ -3,6 +3,7 @@ from pyrsistent import b
 import yaml
 import json
 import glob
+# MODIFGEN from .exceptions import BaseException, BaseExceptionType
 from exceptions import BaseException, BaseExceptionType
 from typing import Dict
 

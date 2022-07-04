@@ -1,6 +1,9 @@
+# MODIFGEN from ..model.equipment import EquipmentI
 from model.equipment import EquipmentI
-from enum import Enum
+# MODIFGEN from ..utils import GetItemEnum
 from utils import GetItemEnum
+from enum import Enum
+
 
 class Effector(EquipmentI):
   WEB_C_DRILLING = 'WEB_C_DRILLING'
@@ -10,4 +13,3 @@ class Effector(EquipmentI):
 
 class Equipment(Enum, metaclass=GetItemEnum):
   EFFECTOR = Effector
-
