@@ -22,6 +22,7 @@ def __build_traj_gen_sequence(path:Path) -> List[Command]:
   # get cmd to run program and wait for end
   run_program_cmds = proxy.run_program(proxy.Program.TRAJ_GEN)
 
+  # return the list of commands
   return set_utuf_cmds + set_movements_cmds + run_program_cmds
   
 
