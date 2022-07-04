@@ -140,6 +140,7 @@ class Effector(Enum, metaclass=ProxyEquipmentI):
       return fct(self)
     else:
       return fct()
+      
 
   @staticmethod
   def LOAD(effector:'Effector') -> Tuple[str, int]:
@@ -579,7 +580,7 @@ def __set_movements_positions(positions:List[Position]) -> List[ProxyCommand]:
     reg_type = RegisterType[pos_type]
 
     # convert positions in dictionnary
-    pos_dict = [p.to_dict() for p in pos]
+    pos_dict = [p.to_cmd_data() for p in pos]
 
     # generate the command definition using write_register
     # if number of position exceed the write limit write_register return a list of cmd
