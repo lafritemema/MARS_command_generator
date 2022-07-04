@@ -6,8 +6,7 @@ from .exceptions import MarsException, MarsExceptionType
 from mars.equipment import Equipment as EQUIPMENT
 from mars.reference import Reference as REFERENCE
 from mars.register import COMMAND_REGISTER
-# from db.exception import DBDriverException
-# from exception import BaseException
+from db.exceptions import DBDriverException
 
 
 
