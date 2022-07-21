@@ -187,4 +187,5 @@ class Action:
     def get_from_db(cls, action_id:str):
         action = model.DB_DRIVER.find_by_id(action_id)
         # MODIFGEN action = DB_DRIVER.find_by_id(action_id)
-        return cls.parse(action)
+        if action:
+            return cls.parse(action)

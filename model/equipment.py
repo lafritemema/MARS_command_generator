@@ -1,20 +1,23 @@
 
-from enum import Enum
+from enum import EnumMeta, Enum
 from functools import partial
 
   
 class EquipmentI(Enum):
-  pass
+  def __init__(self, reference:str):
+    self.__reference = reference
+  
   @property
   def type(self)->str:
     return self.__class__.__name__.upper()
+
   @property
   def reference(self)->str:
-    return self.value
+    return self.__reference
 
 def load(equipment:EquipmentI):
   return {
-    'manipulation': 'LOAD',
+    'operation': 'LOAD',
     'equipment': {
       'type':equipment.type,
       'reference': equipment.reference
@@ -23,7 +26,7 @@ def load(equipment:EquipmentI):
 
 def unload(equipment:EquipmentI):
   return {
-    'manipulation': 'UNLOAD',
+    'operation': 'UNLOAD',
     'equipment': {
       'type': equipment.type,
       'reference': equipment.reference
@@ -31,6 +34,7 @@ def unload(equipment:EquipmentI):
   }
 
 class Operation(Enum):
+  
   LOAD = partial(load)
   UNLOAD = partial(unload)
 

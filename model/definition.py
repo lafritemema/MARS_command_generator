@@ -39,11 +39,11 @@ class Path(Definition):
 
     @property
     def user_tool(self) -> str:
-        return self.__ut.value
+        return self.__ut
 
     @property
     def user_frame(self) -> str:
-        return self.__uf.value
+        return self.__uf
 
     @property
     def movements(self) -> List[Movement]:
@@ -72,8 +72,8 @@ class Path(Definition):
 
     def to_dict(self):
         return { 
-            "uf": self.__uf,
-            "ut": self.__ut,
+            "uf": self.__uf.name,
+            "ut": self.__ut.name,
             "movements": [p.to_dict() for p in self.__movements]
         }
 
@@ -98,8 +98,8 @@ class Path(Definition):
             m_positions.append(mvt_cmd_def['position'])
 
         return {
-            "uf": self.__uf,
-            "ut": self.__ut,
+            "uf": self.__uf.value,
+            "ut": self.__ut.value,
             "movements": {
                 "parameters": m_paras,
                 "positions": m_positions
@@ -157,11 +157,11 @@ class Probing(Definition):
     
     @property
     def user_tool(self):
-        return self.__ut.value
+        return self.__ut
 
     @property
     def user_frame(self):
-        return self.__uf.value
+        return self.__uf
     
     @property
     def movement(self):
@@ -184,8 +184,8 @@ class Probing(Definition):
     
     def to_dict(self):
         return {
-            'ut': self.__ut.value,
-            'uf': self.__uf.value,
+            'ut': self.__ut.name,
+            'uf': self.__uf.name,
             'movement': self.__movement.to_dict()
         }
 
