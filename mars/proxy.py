@@ -1,11 +1,11 @@
 
+from abc import abstractmethod
 from enum import Enum, EnumMeta
 import uuid
-
-from zmq import SUBSCRIBE
+from mars.equipment import Effector
+from mars.reference import Frame
 from model.definition import Manipulation
 from typing import List, Dict, Union, Tuple
-from copy import deepcopy
 from inspect import signature
 from model.movement import Position, Movement
 from model.command import Command
@@ -79,8 +79,8 @@ class RegisterType(Enum):
       return body
 
 class ConstantRegister(Enum, metaclass=GetAttrEnum):
-  UT = 18
-  UF = 19
+  UF = 18
+  UT = 19
   PROGRAM = 1
   PROCESS = 9
   MOVEMENT_PARA_BEGIN = 20
@@ -119,43 +119,66 @@ class ProxyAction(Enum):
   REQUEST = 'REQUEST'
   WAIT = 'WAIT'
 
-class Frame(Enum):
+
+class ProxyFrame(Enum):
   CELL_FRAME = 3
 
-class ProxyEquipmentI(EnumMeta):
-  def _get_tracker_def(self, operation:str):
+  def __init__(self, code:int):
+    self.__code = code
+  
+  @property
+  def code(self):
+    return self.__code
+
+class ProxyEquipmentI(Enum):
+  
+  def __init__(self, code:int):
+    self.__code = code
+  
+  @abstractmethod
+  def _get_operation_result(self, operation:str) -> Tuple[Relation, 'ProxyEquipmentI']:
     pass
-  @staticmethod
+  
+  @property
+  def code(self) -> int:
+    return self.__code
+  
+  @abstractmethod
   def _get_register_info():
     pass
 
-class Effector(Enum, metaclass=ProxyEquipmentI):
+class ProxyEffector(ProxyEquipmentI):
   WEB_C_DRILLING = 2
   FLANGE_C_DRILLING = 3
-  NO_EFFECTOR = 1
+  NONE = 1
 
-  def _get_tracker_def(self, operation:str):
-    fct = getattr(Effector, operation)
+  def __init__(self, code:int):
+    ProxyEquipmentI.__init__(self, code)
+
+  @staticmethod
+  def LOAD(effector:'ProxyEffector') -> Tuple[str, 'ProxyEffector']:
+    return (Relation.EQUAL, effector)
+  
+  @staticmethod
+  def UNLOAD() -> Tuple[str, 'ProxyEffector']:
+    return (Relation.EQUAL, ProxyEffector.NONE)
+
+  @staticmethod
+  def _get_register_info() -> Tuple[RegisterType, int]:
+    return RegisterType.NUMERIC_INT,\
+           ConstantRegister.EFFECTOR_REFERENCE
+
+  def _get_operation_result(self, operation:str):
+    fct = getattr(ProxyEffector, operation)
     if (len(signature(fct).parameters)) > 0:
       return fct(self)
     else:
       return fct()
-      
 
-  @staticmethod
-  def LOAD(effector:'Effector') -> Tuple[str, int]:
-    return (Relation.EQUAL.value, effector.value)
-  
-  @staticmethod
-  def UNLOAD() -> Tuple[str, int]:
-    return (Relation.EQUAL.value, Effector.NO_EFFECTOR.value)
-
-  @staticmethod
-  def _get_register_info() -> Tuple[RegisterType, int]:
-    return RegisterType.NUMERIC_INT, ConstantRegister.EFFECTOR_REFERENCE
 
 class ProxyEquipment(Enum, metaclass=GetItemEnum):
-  EFFECTOR = Effector
+  EFFECTOR = ProxyEffector
+
 
 class ProxyMethod(Enum):
   GET = "GET"
@@ -379,7 +402,7 @@ class TrackerType(Enum, metaclass=GetAttrEnum):
 def __track_register(register_type:RegisterType,
                    register_num:int,
                    interval:int=1000,
-                   expected:Tuple[Relation, Union[str, int, float]]=None) -> Dict :
+                   expected:Tuple[str, Union[str, int, float]]=None) -> Dict :
   """function to build a command definition to track the value of a specific register
 
   Args:
@@ -488,7 +511,7 @@ def run_program(program:Program) -> List[ProxyCommand]:
   return [set_program_cmd, tracker_cmd, wait_cmd]
 
 
-def set_utuf(user_tool:str, user_frame:str) -> List[ProxyCommand]:
+def set_utuf(user_tool:Union[ProxyEffector, Effector], user_frame:Union[ProxyFrame, Frame]) -> List[ProxyCommand]:
   """function to generate the list of commands to update the user tool and the user frame
 
   Args:
@@ -499,17 +522,24 @@ def set_utuf(user_tool:str, user_frame:str) -> List[ProxyCommand]:
       List[ProxyCommand]: list of command to update the informations
   """
   # get the proxy enumeration for user tool and user frame
-  ut = Effector[user_tool]
-  uf = Frame[user_frame]
-
+  if type(user_tool) is ProxyEffector:
+    ut = user_tool
+  else:
+    ut = ProxyEffector[user_tool.reference]
+  
+  if type(user_frame) is ProxyFrame:
+    uf = user_frame
+  else:
+    uf = ProxyFrame[user_frame.reference]
+  
   # get write command parameters __write_register return a list, so get the item 0
   w_method, w_path, w_query, w_body =  __write_register(RegisterType.NUMERIC_INT,
-                                               ConstantRegister.UT,
-                                               (ut.value, uf.value))[0]
+                                               ConstantRegister.UF,
+                                               (uf.code, ut.code))[0]
 
   # init a command to set ut and uf
   set_utuf_cmd = ProxyCommand(ProxyAction.REQUEST,
-                              f"update the user tool register : {ut.name} (code {ut.value}), update the user frame register: {uf.name} (code {uf.value})",
+                              f"update the user tool register : {ut.name} (code {ut.code}), update the user frame register: {uf.name} (code {uf.code})",
                               w_method,
                               w_path,
                               w_query,
@@ -522,6 +552,16 @@ def set_utuf(user_tool:str, user_frame:str) -> List[ProxyCommand]:
   
   return commands
 
+
+def ut_update_sequence(manipulation:Manipulation) -> List[ProxyCommand]:
+  effector = manipulation.equipment
+  effector = ProxyEffector[effector.reference]
+  
+  operation = manipulation.operation
+  relation, effector = effector._get_operation_result(operation)
+
+  return set_utuf(effector, ProxyFrame.CELL_FRAME)
+  
 
 def __set_movements_parameters(movements_parameters:List[int]) -> List[ProxyCommand]:
   """function to generate list of commands to set movement parameters
@@ -676,21 +716,22 @@ def confirm_manipulation(manipulation:Manipulation):
   equipment = manipulation.equipment
 
   # get corresponding ProxyEquipment object (for Proxy Specific information)
-  p_equipment:ProxyEquipmentI = ProxyEquipment[equipment.type][equipment.reference]
+  p_equipment_ref:ProxyEquipmentI = ProxyEquipment[equipment.type][equipment.reference]
 
   # get operation name str
   operation = manipulation.operation
 
-  # get tracking def to check the good manipulation
-  tracker_def_para = p_equipment._get_tracker_def(operation)
+  print(p_equipment_ref)
+  # get tracking def (relation, equipment code) to check the good manipulation
+  relation, aop_equipment_ref = p_equipment_ref._get_operation_result(operation)
   # get info about register to track according to equipment type (type:RegisterType, num:int)
-  register_type, register_num = p_equipment._get_register_info()
+  register_type, register_num = p_equipment_ref._get_register_info()
   
   # define the tracker definition
   method, path, query, body, tracker_uid = __track_register(register_type,
                                      register_num,
                                      DEFAULT_TRACKING_INTERVAL,
-                                     tracker_def_para)
+                                     (relation.value, aop_equipment_ref.code))
   
   # define the command
   tracker_command = ProxyCommand(ProxyAction.REQUEST,
